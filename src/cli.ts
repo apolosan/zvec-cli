@@ -5,6 +5,7 @@
 import { parseArgs } from "node:util";
 import { collection, parseCollectionArgs } from "./commands/collection";
 import { config, parseConfigArgs } from "./commands/config";
+import { deleteDocuments, parseDeleteArgs } from "./commands/delete";
 import { fetch, parseFetchArgs } from "./commands/fetch";
 import { init, parseInitArgs } from "./commands/init";
 import { insert, parseInsertArgs } from "./commands/insert";
@@ -203,6 +204,11 @@ export async function main(args: string[]): Promise<number> {
 		case "fetch": {
 			const fetchOptions = parseFetchArgs(commandArgs);
 			return fetch(fetchOptions);
+		}
+
+		case "delete": {
+			const deleteOptions = parseDeleteArgs(commandArgs);
+			return deleteDocuments(deleteOptions);
 		}
 
 		default:
