@@ -3,7 +3,7 @@
  */
 
 import { parseArgs } from "node:util";
-import { init, parseInitArgs, showInitHelp } from "./commands/init";
+import { init, parseInitArgs } from "./commands/init";
 
 const VERSION = "0.1.0";
 
@@ -14,14 +14,55 @@ interface GlobalOptions {
 
 /**
  * Parse global arguments
+ * Only parses --help and --version if they appear before the command
  */
 function parseGlobalArgs(args: string[]): {
 	options: GlobalOptions;
 	command: string | undefined;
 	commandArgs: string[];
 } {
-	const { values, positionals } = parseArgs({
-		args,
+	// Find where the command starts (first non-flag argument)
+	let commandIndex = -1;
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (arg && !arg.startsWith("-")) {
+			commandIndex = i;
+			break;
+		}
+	}
+
+	// If no command found, parse all args as global options
+	if (commandIndex === -1) {
+		const { values } = parseArgs({
+			args,
+			options: {
+				help: {
+					type: "boolean",
+					short: "h",
+				},
+				version: {
+					type: "boolean",
+					short: "v",
+				},
+			},
+			strict: false,
+			allowPositionals: true,
+		});
+
+		return {
+			options: {
+				help: values.help as boolean | undefined,
+				version: values.version as boolean | undefined,
+			},
+			command: undefined,
+			commandArgs: [],
+		};
+	}
+
+	// Parse only pre-command args as global options
+	const globalArgs = args.slice(0, commandIndex);
+	const { values } = parseArgs({
+		args: globalArgs,
 		options: {
 			help: {
 				type: "boolean",
@@ -33,7 +74,7 @@ function parseGlobalArgs(args: string[]): {
 			},
 		},
 		strict: false,
-		allowPositionals: true,
+		allowPositionals: false,
 	});
 
 	return {
@@ -41,8 +82,8 @@ function parseGlobalArgs(args: string[]): {
 			help: values.help as boolean | undefined,
 			version: values.version as boolean | undefined,
 		},
-		command: positionals[0],
-		commandArgs: positionals.slice(1),
+		command: args[commandIndex],
+		commandArgs: args.slice(commandIndex + 1),
 	};
 }
 
@@ -71,6 +112,12 @@ OPTIONS:
   -h, --help        Show this help message
   -v, --version     Show version
 
+EXAMPLES:
+  zvec init                       Initialize with default storage path
+  zvec init --path ./my-data      Initialize with custom storage path
+  zvec --version                  Show version number
+  zvec init --help                Show detailed help for init command
+
 Run 'zvec <COMMAND> --help' for command-specific help.
 `);
 }
@@ -88,30 +135,35 @@ function showVersion(): void {
 export async function main(args: string[]): Promise<number> {
 	const { options, command, commandArgs } = parseGlobalArgs(args);
 
-	// Handle global options
+	// Handle global options (only if no command specified)
+	if (!command) {
+		if (options.version) {
+			showVersion();
+			return 0;
+		}
+
+		if (options.help) {
+			showHelp();
+			return 0;
+		}
+
+		// No command and no options - show help
+		showHelp();
+		return 0;
+	}
+
+	// Handle global flags even when command is specified
 	if (options.version) {
 		showVersion();
 		return 0;
 	}
 
-	if (options.help) {
-		showHelp();
-		return 0;
-	}
-
 	// Route to command
 	switch (command) {
-		case "init":
-			return init(parseInitArgs(commandArgs));
-
-		case "init --help":
-		case "-h":
-			showInitHelp();
-			return 0;
-
-		case undefined:
-			showHelp();
-			return 0;
+		case "init": {
+			const initOptions = parseInitArgs(commandArgs);
+			return init(initOptions);
+		}
 
 		default:
 			console.error(`Unknown command: ${command}`);
