@@ -3,6 +3,7 @@
  */
 
 import { parseArgs } from "node:util";
+import { config, parseConfigArgs } from "./commands/config";
 import { init, parseInitArgs } from "./commands/init";
 
 const VERSION = "0.1.0";
@@ -163,6 +164,11 @@ export async function main(args: string[]): Promise<number> {
 		case "init": {
 			const initOptions = parseInitArgs(commandArgs);
 			return init(initOptions);
+		}
+
+		case "config": {
+			const configOptions = parseConfigArgs(commandArgs);
+			return config(configOptions);
 		}
 
 		default:
