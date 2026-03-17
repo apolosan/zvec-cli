@@ -3,6 +3,7 @@
  */
 
 import { parseArgs } from "node:util";
+import { collection, parseCollectionArgs } from "./commands/collection";
 import { config, parseConfigArgs } from "./commands/config";
 import { init, parseInitArgs } from "./commands/init";
 
@@ -169,6 +170,12 @@ export async function main(args: string[]): Promise<number> {
 		case "config": {
 			const configOptions = parseConfigArgs(commandArgs);
 			return config(configOptions);
+		}
+
+		case "collection":
+		case "col": {
+			const collectionOptions = parseCollectionArgs(commandArgs);
+			return collection(collectionOptions);
 		}
 
 		default:
