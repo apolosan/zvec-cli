@@ -5,6 +5,7 @@
 import { parseArgs } from "node:util";
 import { collection, parseCollectionArgs } from "./commands/collection";
 import { config, parseConfigArgs } from "./commands/config";
+import { fetch, parseFetchArgs } from "./commands/fetch";
 import { init, parseInitArgs } from "./commands/init";
 import { insert, parseInsertArgs } from "./commands/insert";
 
@@ -197,6 +198,11 @@ export async function main(args: string[]): Promise<number> {
 		case "insert": {
 			const insertOptions = parseInsertArgs(commandArgs);
 			return insert(insertOptions);
+		}
+
+		case "fetch": {
+			const fetchOptions = parseFetchArgs(commandArgs);
+			return fetch(fetchOptions);
 		}
 
 		default:
