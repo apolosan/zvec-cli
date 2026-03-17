@@ -1,0 +1,259 @@
+{
+  "project": "zvec-cli",
+  "branchName": "ralph/zvec-cli",
+  "description": "Command-line interface for Zvec vector database - manage collections, documents, and similarity searches from the terminal",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Initialize Zvec Storage",
+      "description": "As a user, I want to initialize a zvec storage location so that I can start managing vector collections.",
+      "acceptanceCriteria": [
+        "`zvec init` creates storage directory at `~/.zvec/collections/` by default",
+        "`zvec init --path ./custom-path` creates storage at specified location",
+        "Command creates `.zvecrc` config file with storage path",
+        "Idempotent: re-running init on existing storage is safe",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 1,
+      "status": "done",
+      "dependsOn": [],
+      "notes": "Foundation command - must be completed first"
+    },
+    {
+      "id": "US-011",
+      "title": "Global Help and Version",
+      "description": "As a user, I want to see help text and version info so that I can learn how to use the CLI.",
+      "acceptanceCriteria": [
+        "`zvec --help` shows all available commands",
+        "`zvec --version` shows version number",
+        "`zvec <command> --help` shows command-specific help",
+        "Help text includes usage examples",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 2,
+      "status": "done",
+      "dependsOn": [],
+      "notes": "Foundation - can be developed in parallel with US-001",
+      "startedAt": "2026-03-17T01:32:01.083Z",
+      "updatedAt": "2026-03-17T01:42:55.571Z",
+      "completedAt": "2026-03-17T01:42:55.571Z"
+    },
+    {
+      "id": "US-012",
+      "title": "Configuration Management",
+      "description": "As a user, I want to configure default settings so that I don't repeat common flags.",
+      "acceptanceCriteria": [
+        "`zvec config set storage.path ./custom-path` sets config value",
+        "`zvec config get storage.path` shows config value",
+        "`zvec config list` shows all config values",
+        "Config stored in `~/.zvecrc` (YAML format)",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 3,
+      "status": "done",
+      "dependsOn": [],
+      "notes": "Foundation - can be developed in parallel with US-001",
+      "startedAt": "2026-03-17T01:42:55.579Z",
+      "updatedAt": "2026-03-17T01:50:51.334Z",
+      "completedAt": "2026-03-17T01:50:51.334Z"
+    },
+    {
+      "id": "US-002",
+      "title": "Create Collection",
+      "description": "As a user, I want to create a new collection with a defined schema so that I can store documents with vectors.",
+      "acceptanceCriteria": [
+        "`zvec collection create <name> --vector <fieldName>:<dimension>` creates collection",
+        "Support multiple vector fields: `--vector embedding:1536 --vector thumbnail:512`",
+        "Support scalar fields: `--field title:string --field year:int32`",
+        "Default vector field name is \"embedding\" if not specified",
+        "Error message if collection already exists",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 4,
+      "status": "done",
+      "dependsOn": [
+        "US-001"
+      ],
+      "notes": "Requires initialized storage from US-001",
+      "startedAt": "2026-03-17T01:50:51.337Z",
+      "updatedAt": "2026-03-17T02:02:02.168Z",
+      "completedAt": "2026-03-17T02:02:02.168Z"
+    },
+    {
+      "id": "US-003",
+      "title": "List Collections",
+      "description": "As a user, I want to list all collections so that I can see what's available.",
+      "acceptanceCriteria": [
+        "`zvec collection list` (or `zvec ls`) shows all collections",
+        "Default output: table with columns (name, documents, vectors, created)",
+        "`--json` flag outputs raw JSON",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 5,
+      "status": "done",
+      "dependsOn": [
+        "US-002"
+      ],
+      "notes": "Requires collection creation capability for testing",
+      "startedAt": "2026-03-17T02:02:02.171Z",
+      "updatedAt": "2026-03-17T02:37:00.000Z",
+      "completedAt": "2026-03-17T02:37:00.000Z"
+    },
+    {
+      "id": "US-004",
+      "title": "Inspect Collection Schema",
+      "description": "As a user, I want to view a collection's schema and stats so that I understand its structure.",
+      "acceptanceCriteria": [
+        "`zvec collection inspect <name>` (or `zvec inspect <name>`) shows schema",
+        "Output includes: field names, types, vector dimensions",
+        "Output includes collection stats (document count, size)",
+        "`--json` flag for machine-readable output",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 6,
+      "status": "done",
+      "dependsOn": [
+        "US-002"
+      ],
+      "notes": "Requires collection creation capability for testing",
+      "startedAt": "2026-03-17T02:50:00.000Z",
+      "updatedAt": "2026-03-17T02:53:00.000Z",
+      "completedAt": "2026-03-17T02:53:00.000Z"
+    },
+    {
+      "id": "US-005",
+      "title": "Drop Collection",
+      "description": "As a user, I want to delete a collection so that I can remove unused data.",
+      "acceptanceCriteria": [
+        "`zvec collection drop <name>` removes collection",
+        "Requires `--force` or `-y` flag to confirm (no interactive prompt in v1)",
+        "Error if collection doesn't exist",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 7,
+      "status": "done",
+      "dependsOn": [
+        "US-002"
+      ],
+      "notes": "Requires collection creation capability for testing",
+      "startedAt": "2026-03-17T02:55:48.622Z",
+      "updatedAt": "2026-03-17T03:17:32.757Z",
+      "completedAt": "2026-03-17T03:17:32.757Z"
+    },
+    {
+      "id": "US-006",
+      "title": "Insert Documents",
+      "description": "As a user, I want to insert documents with vectors so that I can populate my collection.",
+      "acceptanceCriteria": [
+        "`zvec insert <collection> --file data.json` inserts from JSON file",
+        "Support JSONL format: `--file data.jsonl`",
+        "Support CSV with vector columns: `--file data.csv --vector-col \"embedding\"`",
+        "Support stdin: `cat data.json | zvec insert <collection>`",
+        "Single document via CLI: `zvec insert <collection> --id doc1 --vector \"0.1,0.2,0.3\" --field title=\"Hello\"`",
+        "Batch insert with progress indicator for large files",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 8,
+      "status": "done",
+      "dependsOn": [
+        "US-002"
+      ],
+      "notes": "Complex command with multiple input formats - largest story",
+      "startedAt": "2026-03-17T03:17:32.759Z",
+      "updatedAt": "2026-03-17T03:41:17.436Z",
+      "completedAt": "2026-03-17T03:41:17.436Z"
+    },
+    {
+      "id": "US-007",
+      "title": "Fetch Document by ID",
+      "description": "As a user, I want to retrieve a document by ID so that I can inspect its contents.",
+      "acceptanceCriteria": [
+        "`zvec fetch <collection> <docId>` retrieves and displays document",
+        "Default output: formatted table of fields",
+        "`--json` flag for raw JSON output",
+        "`--vector` flag to include vector data (hidden by default)",
+        "Error message if document not found",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 9,
+      "status": "done",
+      "dependsOn": [
+        "US-006"
+      ],
+      "notes": "Requires documents to exist for meaningful testing",
+      "startedAt": "2026-03-17T03:41:17.449Z",
+      "updatedAt": "2026-03-17T03:50:37.772Z",
+      "completedAt": "2026-03-17T03:50:37.772Z"
+    },
+    {
+      "id": "US-008",
+      "title": "Delete Documents",
+      "description": "As a user, I want to delete documents so that I can remove unwanted data.",
+      "acceptanceCriteria": [
+        "`zvec delete <collection> --id <docId>` deletes single document",
+        "`zvec delete <collection> --filter \"year < 1900\"` deletes by filter",
+        "Show count of deleted documents",
+        "`--dry-run` flag shows what would be deleted without deleting",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 10,
+      "status": "done",
+      "dependsOn": [
+        "US-006"
+      ],
+      "notes": "Requires documents to exist for meaningful testing",
+      "startedAt": "2026-03-17T03:50:37.779Z",
+      "updatedAt": "2026-03-17T03:56:00.000Z",
+      "completedAt": "2026-03-17T03:56:00.000Z"
+    },
+    {
+      "id": "US-009",
+      "title": "Similarity Search",
+      "description": "As a user, I want to search for similar vectors so that I can find related documents.",
+      "acceptanceCriteria": [
+        "`zvec search <collection> --vector \"0.1,0.2,0.3,...\" --topk 10` performs similarity search",
+        "`--vector-file query.json` loads query vector from file",
+        "`--filter \"year > 2000\"` applies metadata filter",
+        "Default output: table with columns (id, score, [selected fields])",
+        "`--json` flag for raw JSON output",
+        "`--fields \"title,author\"` specifies which fields to display",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 11,
+      "status": "open",
+      "dependsOn": [
+        "US-006"
+      ],
+      "notes": "Core feature - requires documents with vectors for testing"
+    },
+    {
+      "id": "US-010",
+      "title": "Optimize Collection",
+      "description": "As a user, I want to optimize a collection so that queries are faster.",
+      "acceptanceCriteria": [
+        "`zvec optimize <collection>` runs optimization",
+        "Shows progress/status during optimization",
+        "Reports completion status",
+        "bun test passes",
+        "bun run typecheck passes"
+      ],
+      "priority": 12,
+      "status": "open",
+      "dependsOn": [
+        "US-006"
+      ],
+      "notes": "Requires documents in collection for meaningful optimization"
+    }
+  ]
+}

@@ -1,0 +1,315 @@
+# Zvec CLI Development Progress
+
+## Codebase Patterns
+
+- **CLI Structure**: Commands are in `src/commands/`, each exports `parse*Args`, `show*Help`, and the main function
+- **Config Pattern**: Use `ZVEC_HOME` env var for testing (overrides `os.homedir()`)
+- **Bun File API**: Use `Bun.file()` for existence checks, `Bun.write()` for writing
+- **Testing**: Use `bun:test` with `describe/test/expect`, set `ZVEC_HOME` for isolated tests
+- **Imports**: Biome auto-sorts imports; use `node:` prefix for Node builtins
+- **Spawn**: Use `Bun.spawnSync()` for shell commands like `mkdir -p`
+
+---
+
+## [2025-03-17] - US-001
+Session: N/A
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- CLI foundation with argument parsing using `node:util/parseArgs`
+- `zvec init` command with `--path` and `--help` options
+- Configuration management (`~/.zvecrc` YAML format)
+- Storage directory creation at `~/.zvec/collections/` by default
+- Idempotent initialization (safe to re-run)
+
+### Files changed
+- `src/types.ts` - Type definitions for config, collections, documents
+- `src/config.ts` - Config read/write with YAML serialization
+- `src/commands/init.ts` - Init command implementation
+- `src/cli.ts` - Main CLI entry point with command routing
+- `index.ts` - Export entry point
+- `tests/init.test.ts` - Tests for init command and config
+
+### Learnings for future iterations
+- **Config testing**: Use `ZVEC_HOME` env var to isolate tests from user's real config
+- **Bun file API**: `Bun.file(path).exists()` for checking existence, `Bun.write(path, content)` for writing
+- **Import ordering**: Biome requires specific import order; run `bun run format` before commits
+- **Unused imports**: Biome flags unused imports; remove them before committing
+- **Directory creation**: Use `Bun.spawnSync(["mkdir", "-p", path])` for recursive mkdir
+
+---
+## [2026-03-17] - US-011
+Session: iter-a103c955
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- Global help system with `--help` and `-h` flags
+- Version display with `--version` and `-v` flags
+- Command-specific help routing (e.g., `zvec init --help`)
+- Enhanced help text with EXAMPLES section
+- Comprehensive test coverage for help and version functionality
+
+### Files changed
+- `src/cli.ts` - Updated global argument parsing to properly handle command-specific help
+- `tests/help.test.ts` - New test file with comprehensive help/version tests
+
+### Learnings for future iterations
+- **Help routing**: Parse global flags only before command to avoid consuming command-specific flags
+- **Argument parsing**: Use position-based parsing to separate global options from command arguments
+- **Type safety**: Add null checks for array access even in bounded loops to satisfy TypeScript strict mode
+- **Test patterns**: Capture console.log output in tests by temporarily replacing console.log
+
+---
+## [2026-03-17] - US-012
+Session: iter-9cd4f93e
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec config set <KEY> <VALUE>` - sets config values
+- `zvec config get <KEY>` - retrieves config values
+- `zvec config list` - shows all config values
+- Config stored in `~/.zvecrc` (YAML format)
+- Support for `storage.path` config key
+- Error handling for unknown config keys
+- Command-specific help with examples
+
+### Files changed
+- `src/commands/config.ts` - New config command implementation
+- `src/cli.ts` - Updated routing to include config command
+- `tests/config.test.ts` - Comprehensive test coverage for config command
+
+### Learnings for future iterations
+- **Subcommand pattern**: Config command uses subcommands (set/get/list) with positional args
+- **Dot notation**: Config keys use dot notation (e.g., `storage.path`) for nested access
+- **Help routing**: Each command exports `parse*Args`, `show*Help`, and main function
+
+---
+
+## [2026-03-17] - US-002
+Session: iter-86b2b295
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec collection create <name>` - creates collection with default "embedding" vector (1536 dims)
+- `--vector <name>:<dim>` - adds vector fields (repeatable)
+- `--field <name>:<type>` - adds scalar fields (repeatable)
+- Collection schema stored as JSON in `~/.zvec/collections/<name>.json`
+- Error handling for duplicate collections and invalid specifications
+- Collection name validation (alphanumeric, underscore, hyphen only)
+
+### Files changed
+- `src/commands/collection.ts` - New collection command with create subcommand
+- `src/cli.ts` - Added routing for collection command
+- `tests/collection.test.ts` - Comprehensive test coverage
+
+### Learnings for future iterations
+- **Multiple values**: Use `multiple: true` in parseArgs for repeatable flags
+- **Collection storage**: Collections go in `storage.path/collections/` directory
+- **Directory creation**: Ensure collections directory exists before writing (use `ensureCollectionsDir`)
+- **Field type validation**: Valid scalar types are string, int32, int64, float, double, bool
+---
+
+---
+
+## [2026-03-17] - US-003
+Session: iter-1061e97b
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec collection list` command to show all collections
+- `zvec ls` shortcut command for listing collections
+- Default output: formatted table with columns (name, documents, vectors, created)
+- `--json` flag for JSON output
+- Help text with examples
+
+- Fixed issue: `Bun.file().exists()` returns false for directories, used `existsSync` from node:fs instead
+- Added `getCollectionsDir()` helper function for cleaner code
+
+### Files changed
+- `src/commands/collection.ts` - Added `list` subcommand implementation, `showListHelp()`, `getCollectionsDir()`, fixed `getCollectionPath` and `ensureCollectionsDir` to use correct path
+- `src/cli.ts` - Added `ls` command alias that routes to `collection list`
+- `tests/collection.test.ts` - Updated tests to verify list functionality
+
+### Learnings for future iterations
+- **Bun.file().exists() for directories**: This method returns false for directories. Use `existsSync` from `node:fs` instead when checking if a directory exists.
+- **Collections path structure**: Collections are stored at `config.storage.path + "/collections"`. The init command creates `~/.zvec/collections/collections/` as the nested structure.
+- **Glob for scanning**: Use `new Bun.Glob("*.json")` with `globber.scan({ cwd: dir })` to iterate over files in a directory.
+- **Table formatting**: Calculate column widths dynamically based on content for nice table output.
+---
+
+## [2026-03-17] - US-004
+Session: iter-0f9f3b82
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec collection inspect <name>` - shows collection schema and stats
+- `zvec inspect <name>` - shortcut command
+- Output includes: field names, types, vector dimensions
+- Output includes collection stats (document count, size)
+- `--json` flag for machine-readable output
+- Help text with examples
+
+### Files changed
+- `src/commands/collection.ts` - Added `inspect` subcommand implementation, `showInspectHelp()`
+- `src/cli.ts` - Added `inspect` command routing, updated global help
+- `tests/collection.test.ts` - Added tests for inspect functionality
+- `tests/help.test.ts` - Added test for inspect shortcut
+
+### Learnings for future iterations
+- **File size formatting**: Use `file.stat()` to get file size for stats output
+- **Stats in JSON output**: Include computed stats alongside schema data in JSON output
+- **Shortcut commands**: Add routing case for shortcuts like `zvec inspect` that maps to `collection inspect`
+---
+
+## [2026-03-17] - US-005
+Session: iter-fdfb1e6e
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec collection drop <name>` - deletes a collection permanently
+- Requires `--force` or `-y` flag for confirmation (no interactive prompt)
+- Error handling for non-existent collections
+- Comprehensive test coverage including help, error cases, and successful deletion
+- Help text with usage examples
+
+### Files changed
+- `src/commands/collection.ts` - Added drop subcommand implementation with showDropHelp() and drop() functions
+- `tests/collection.test.ts` - Added comprehensive drop command tests
+
+### Learnings for future iterations
+- **Force flag pattern**: Use boolean flags for confirmation instead of interactive prompts in CLI tools
+- **File deletion**: Use `Bun.write(path, "")` to clear file content, then `Bun.spawnSync(["rm", path])` to remove it
+- **Error messages**: Include example command in error messages to guide users (e.g., "Use --force or -y flag. Example: zvec collection drop <name> --force")
+---
+
+## [2026-03-17] - US-005
+Session: iter-fdfb1e6e
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec collection drop <name>` - deletes collection with force flag requirement
+- Requires `--force` or `-y` flag to confirm (no interactive prompt in v1)
+- Error handling for missing name, missing force flag, non-existent collection
+- Comprehensive test coverage for all error cases and successful deletion
+- Help text with usage examples
+
+### Files changed
+- `src/commands/collection.ts` - Added drop subcommand implementation, showDropHelp(), updated routing
+- `tests/collection.test.ts` - Added comprehensive test suite for drop functionality
+
+### Learnings for future iterations
+- **Force flag pattern**: Use boolean flags for confirmation instead of interactive prompts in CLI tools
+- **File deletion**: Use `Bun.write(path, "")` to clear file content, then `Bun.spawnSync(["rm", path])` to remove it
+- **Error messages**: Include example command in error messages to guide users (e.g., "Use --force or -y flag. Example: zvec collection drop <name> --force")
+---
+
+
+## [2026-03-17] - US-006
+Session: iter-6a9786f3
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec insert <collection> --file data.json` - inserts from JSON file (array or single object)
+- `zvec insert <collection> --file data.jsonl` - inserts from JSONL file
+- `zvec insert <collection> --file data.csv --vector-col embedding` - inserts from CSV
+- `zvec insert <collection> --id doc1 --vector "0.1,0.2,0.3" --field title="Hello"` - single doc via CLI
+- Stdin support: `cat data.json | zvec insert mycol`
+- Batch insert with progress indicator (bar for >10 docs)
+- Document validation (vector dimension, field types)
+- Auto-generated IDs when not provided
+- Documents stored as JSONL at `config.storage.path/collections/name.documents.jsonl`
+
+### Files changed
+- `src/commands/insert.ts` - Full insert command implementation
+- `tests/insert.test.ts` - Comprehensive test coverage (30 tests)
+
+### Learnings for future iterations
+- **Bun.write append**: `Bun.write(path, data, { append: true })` does NOT work reliably in Bun v1.3.0 — use `appendFileSync` from `node:fs` instead
+- **Document storage path**: Documents stored at `config.storage.path/collections/name.documents.jsonl` (same directory as schema files at `config.storage.path/collections/name.json`)
+- **Test path structure**: When `ZVEC_HOME=testDir`, documents go to `testDir/.zvec/collections/collections/name.documents.jsonl`
+- **InsertOptions fields**: Make `fields` optional (`fields?: string[]`) to avoid TypeScript errors in test call sites
+---
+
+## [2026-03-17] - US-007
+Session: iter-09e144af
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec fetch <collection> <docId>` - retrieves and displays document
+- Default output: formatted table of fields (id, created, updated, then field values)
+- `--vector` flag to include vector data in table output (hidden by default)
+- `--json` flag for raw JSON output (vectors omitted unless --vector is also set)
+- Error message if collection not found, document ID missing, or document not found
+- `findDocumentById` reads JSONL file line-by-line for memory efficiency using readline interface
+- Vector truncation in table mode: shows first 6 values + "... +N more (dim=D)" for long vectors
+
+### Files changed
+- `src/commands/fetch.ts` - New fetch command implementation
+- `src/cli.ts` - Added `fetch` command routing with import sorted per Biome rules
+- `tests/fetch.test.ts` - 21 tests covering all acceptance criteria
+
+### Learnings for future iterations
+- **readline for JSONL**: Use `node:readline` + `createInterface` for line-by-line streaming of JSONL docs; memory-efficient and compatible with Bun
+- **Import sorting**: Biome enforces alphabetical import order; add new command imports in sorted position in cli.ts
+- **JSON output without vectors**: Use destructuring `{ vectors: _vectors, ...rest }` to omit vectors from JSON output
+- **Vector display truncation**: For large vectors, show first N values and indicate remaining count + dimension
+---
+
+## [2026-03-17] - US-008
+Session: iter-0436ef82
+Review Outcome: PASS
+Trajectory: ON_TRACK
+Trajectory Notes: N/A
+Corrective Plan: N/A
+
+### What was implemented
+- `zvec delete <collection> --id <docId>` - deletes single document by ID
+- `zvec delete <collection> --filter "year < 1900"` - deletes by scalar field filter
+- Shows count of deleted documents on success
+- `--dry-run` flag lists IDs that would be deleted without modifying data
+- Error handling: missing collection, missing --id/--filter, collection not found, document not found by ID
+- Filter supports operators: `<`, `>`, `<=`, `>=`, `=`, `==`, `!=` on scalar fields
+- Read JSONL line-by-line via readline, write remaining docs back with writeFileSync
+- 35 tests covering all acceptance criteria and edge cases
+
+### Files changed
+- `src/commands/delete.ts` - New delete command implementation (parseDeleteArgs, showDeleteHelp, parseFilter, evaluateFilter, getAllDocuments, deleteDocuments)
+- `src/cli.ts` - Added `delete` command routing with sorted import
+- `tests/delete.test.ts` - Comprehensive tests (35 tests: arg parsing, filter parsing, filter evaluation, integration)
+
+### Learnings for future iterations
+- **`delete` is a reserved JS keyword**: Cannot export a function named `delete`; use `deleteDocuments` instead
+- **JSONL delete pattern**: Read all docs with readline, filter out matches, overwrite with writeFileSync
+- **Filter regex**: Use `/^\s*(\w+)\s*(<=|>=|!=|==|<|>|=)\s*(.+?)\s*$/` to parse `field op value` expressions
+- **writeFileSync for overwrite**: Use `writeFileSync(path, content, "utf8")` to overwrite JSONL file with filtered set
+---
