@@ -358,7 +358,9 @@ function parseFieldSpec(
 /**
  * Get collection file path
  */
-async function getCollectionPath(collectionName: string): Promise<string> {
+export async function getCollectionPath(
+	collectionName: string,
+): Promise<string> {
 	const config = await readConfig();
 	return path.join(
 		config.storage.path,

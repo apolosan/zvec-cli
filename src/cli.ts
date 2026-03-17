@@ -6,6 +6,7 @@ import { parseArgs } from "node:util";
 import { collection, parseCollectionArgs } from "./commands/collection";
 import { config, parseConfigArgs } from "./commands/config";
 import { init, parseInitArgs } from "./commands/init";
+import { insert, parseInsertArgs } from "./commands/insert";
 
 const VERSION = "0.1.0";
 
@@ -191,6 +192,11 @@ export async function main(args: string[]): Promise<number> {
 				...commandArgs,
 			]);
 			return collection(collectionOptions);
+		}
+
+		case "insert": {
+			const insertOptions = parseInsertArgs(commandArgs);
+			return insert(insertOptions);
 		}
 
 		default:
