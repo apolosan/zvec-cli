@@ -1,0 +1,33 @@
+# ralphi configuration
+# Auto-generated — edit as needed
+
+project:
+  name: "zvec-cli"
+  language: "TypeScript"
+  runtime: "Bun"
+  framework: null
+
+commands:
+  test: "bun test"
+  lint: "bunx biome check ."
+  format: "bunx biome format . --write"
+  typecheck: "bunx tsc --noEmit"
+  build: "bun build ./index.ts --compile --outfile=zvec-cli"
+
+rules:
+  - "use bun instead of node (bun test, bun run, bun install)"
+  - "use bun test for testing with bun:test import"
+  - "use biome for linting and formatting"
+  - "use strict TypeScript (strict: true in tsconfig)"
+  - "prefer Bun.file over node:fs readFile/writeFile"
+  - "Bun auto-loads .env - no dotenv needed"
+
+boundaries:
+  never_touch:
+    - "*.lock"
+    - ".env*"
+    - "bun.lock"
+    - "node_modules/**"
+
+engine: "pi"
+max_retries: 3

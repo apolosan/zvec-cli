@@ -1,0 +1,22 @@
+{
+	"name": "zvec-cli",
+	"module": "index.ts",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"test": "bun test",
+		"lint": "biome check .",
+		"lint:fix": "biome check . --write",
+		"format": "biome format . --write",
+		"typecheck": "tsc --noEmit",
+		"build": "bun build ./index.ts --compile --outfile=zvec-cli",
+		"check": "bun run lint && bun test && bun run typecheck"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.7",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}
