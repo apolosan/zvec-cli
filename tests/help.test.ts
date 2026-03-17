@@ -132,4 +132,21 @@ describe("Global Help and Version", () => {
 			expect(helpText).toContain("zvec init");
 		});
 	});
+
+	describe("inspect shortcut", () => {
+		test("shows help with inspect --help", async () => {
+			const originalLog = console.log;
+			const logs: string[] = [];
+			console.log = (msg: string) => logs.push(msg);
+
+			const exitCode = await main(["inspect", "--help"]);
+
+			console.log = originalLog;
+
+			expect(exitCode).toBe(0);
+			expect(logs.length).toBeGreaterThan(0);
+			const helpText = logs.join("\n");
+			expect(helpText).toContain("zvec collection inspect");
+		});
+	});
 });

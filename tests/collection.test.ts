@@ -362,12 +362,68 @@ describe("collection command - other subcommands", () => {
 		expect(result).toBe(0);
 	});
 
-	test("inspect returns not implemented", async () => {
+	test("inspect shows schema for existing collection", async () => {
+		// Create a collection first
+		const colName = `test-inspect-${Date.now()}`;
+		await collection({
+			subcommand: "create",
+			createOptions: {
+				name: colName,
+				vectors: ["embedding:768"],
+				fields: ["title:string", "year:int32"],
+				help: false,
+			},
+		});
+
 		const result = await collection({
 			subcommand: "inspect",
-			inspectOptions: { name: "test", help: false },
+			inspectOptions: { name: colName, help: false },
+		});
+		expect(result).toBe(0);
+	});
+
+	test("inspect errors for non-existent collection", async () => {
+		const result = await collection({
+			subcommand: "inspect",
+			inspectOptions: { name: "non-existent-collection", help: false },
 		});
 		expect(result).toBe(1);
+	});
+
+	test("inspect errors without collection name", async () => {
+		const result = await collection({
+			subcommand: "inspect",
+			inspectOptions: { name: undefined, help: false },
+		});
+		expect(result).toBe(1);
+	});
+
+	test("inspect shows help with --help flag", async () => {
+		const result = await collection({
+			subcommand: "inspect",
+			inspectOptions: { help: true },
+		});
+		expect(result).toBe(0);
+	});
+
+	test("inspect outputs JSON with --json flag", async () => {
+		// Create a collection first
+		const colName = `test-inspect-json-${Date.now()}`;
+		await collection({
+			subcommand: "create",
+			createOptions: {
+				name: colName,
+				vectors: ["embedding:512"],
+				fields: ["content:string"],
+				help: false,
+			},
+		});
+
+		const result = await collection({
+			subcommand: "inspect",
+			inspectOptions: { name: colName, help: false, json: true },
+		});
+		expect(result).toBe(0);
 	});
 
 	test("drop returns not implemented", async () => {

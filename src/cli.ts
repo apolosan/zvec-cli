@@ -105,6 +105,7 @@ COMMANDS:
   collection        Manage collections (create, list, inspect, drop)
   config            Manage configuration
   ls                List all collections (shortcut for 'collection list')
+  inspect           View collection schema (shortcut for 'collection inspect')
   insert            Insert documents into a collection
   fetch             Fetch a document by ID
   delete            Delete documents from a collection
@@ -181,6 +182,14 @@ export async function main(args: string[]): Promise<number> {
 			const collectionOptions = parseCollectionArgs(
 				command === "ls" ? ["list", ...commandArgs] : commandArgs,
 			);
+			return collection(collectionOptions);
+		}
+
+		case "inspect": {
+			const collectionOptions = parseCollectionArgs([
+				"inspect",
+				...commandArgs,
+			]);
 			return collection(collectionOptions);
 		}
 

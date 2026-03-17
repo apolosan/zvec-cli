@@ -229,6 +229,31 @@ EXAMPLES:
 }
 
 /**
+ * Display help for inspect subcommand
+ */
+export function showInspectHelp(): void {
+	console.log(`zvec collection inspect - View collection schema and stats
+
+USAGE:
+  zvec collection inspect <NAME> [OPTIONS]
+  zvec inspect <NAME> [OPTIONS]
+
+OPTIONS:
+  --json      Output as JSON
+  -h, --help  Show this help message
+
+OUTPUT:
+  Default: Formatted schema with field info and collection stats
+  JSON: Full collection schema object
+
+EXAMPLES:
+  zvec collection inspect mycol
+  zvec inspect mycol
+  zvec inspect mycol --json
+`);
+}
+
+/**
  * Display help for create subcommand
  */
 export function showCreateHelp(): void {
@@ -548,6 +573,97 @@ async function list(options: {
 }
 
 /**
+ * Inspect a collection - show schema and stats
+ */
+async function inspect(options: {
+	name?: string;
+	help?: boolean;
+	json?: boolean;
+}): Promise<number> {
+	if (options.help) {
+		showInspectHelp();
+		return 0;
+	}
+
+	if (!options.name) {
+		console.error("Error: Missing collection name");
+		console.error("Usage: zvec collection inspect <NAME> [OPTIONS]");
+		return 1;
+	}
+
+	// Check if collection exists
+	const collectionPath = await getCollectionPath(options.name);
+	const file = Bun.file(collectionPath);
+
+	if (!(await file.exists())) {
+		console.error(`Error: Collection '${options.name}' not found`);
+		return 1;
+	}
+
+	// Read collection schema
+	let schema: CollectionSchema;
+	try {
+		schema = (await file.json()) as CollectionSchema;
+	} catch {
+		console.error(`Error: Could not parse collection '${options.name}'`);
+		return 1;
+	}
+
+	// Get file size for stats
+	const stats = await file.stat();
+	const fileSize = stats?.size ?? 0;
+
+	// Format file size
+	function formatSize(bytes: number): string {
+		if (bytes < 1024) return `${bytes} B`;
+		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+		return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	}
+
+	if (options.json) {
+		// Output JSON format with stats
+		const output = {
+			...schema,
+			stats: {
+				documentCount: 0, // Document counting not implemented yet
+				sizeBytes: fileSize,
+				sizeFormatted: formatSize(fileSize),
+			},
+		};
+		console.log(JSON.stringify(output, null, 2));
+	} else {
+		// Output formatted text
+		console.log(`Collection: ${schema.name}`);
+		console.log(`Created: ${new Date(schema.created).toLocaleString()}`);
+		console.log(`Size: ${formatSize(fileSize)}`);
+		console.log("");
+
+		// Show vector fields
+		console.log("Vector Fields:");
+		for (const v of schema.vectors) {
+			console.log(`  ${v.name}: dimension ${v.dimension}`);
+		}
+
+		// Show scalar fields
+		if (schema.fields.length > 0) {
+			console.log("");
+			console.log("Scalar Fields:");
+			for (const f of schema.fields) {
+				console.log(`  ${f.name}: ${f.type}`);
+			}
+		} else {
+			console.log("");
+			console.log("Scalar Fields: (none defined)");
+		}
+
+		console.log("");
+		console.log("Documents: 0 (not implemented)");
+	}
+
+	return 0;
+}
+
+/**
  * Execute collection command
  */
 export async function collection(options: CollectionOptions): Promise<number> {
@@ -571,8 +687,10 @@ export async function collection(options: CollectionOptions): Promise<number> {
 			return list(options.listOptions);
 
 		case "inspect":
-			console.error("Error: 'inspect' subcommand not yet implemented");
-			return 1;
+			if (!options.inspectOptions) {
+				return inspect({ help: false });
+			}
+			return inspect(options.inspectOptions);
 
 		case "drop":
 			console.error("Error: 'drop' subcommand not yet implemented");
