@@ -425,12 +425,96 @@ describe("collection command - other subcommands", () => {
 		});
 		expect(result).toBe(0);
 	});
+});
 
-	test("drop returns not implemented", async () => {
+describe("collection command - drop", () => {
+	test("drop shows help with --help flag", async () => {
 		const result = await collection({
 			subcommand: "drop",
-			dropOptions: { name: "test", help: false, force: true },
+			dropOptions: { help: true },
+		});
+		expect(result).toBe(0);
+	});
+
+	test("drop errors without collection name", async () => {
+		const result = await collection({
+			subcommand: "drop",
+			dropOptions: { name: undefined, help: false, force: true },
 		});
 		expect(result).toBe(1);
+	});
+
+	test("drop errors without --force flag", async () => {
+		// Create a collection first
+		const colName = `test-drop-no-force-${Date.now()}`;
+		await collection({
+			subcommand: "create",
+			createOptions: { name: colName, vectors: [], fields: [], help: false },
+		});
+
+		const result = await collection({
+			subcommand: "drop",
+			dropOptions: { name: colName, help: false, force: false },
+		});
+		expect(result).toBe(1);
+
+		// Verify collection still exists
+		expect(await collectionExists(colName)).toBe(true);
+	});
+
+	test("drop errors for non-existent collection", async () => {
+		const result = await collection({
+			subcommand: "drop",
+			dropOptions: {
+				name: "non-existent-collection",
+				help: false,
+				force: true,
+			},
+		});
+		expect(result).toBe(1);
+	});
+
+	test("drop removes collection with --force flag", async () => {
+		// Create a collection first
+		const colName = `test-drop-force-${Date.now()}`;
+		await collection({
+			subcommand: "create",
+			createOptions: { name: colName, vectors: [], fields: [], help: false },
+		});
+
+		// Verify it exists
+		expect(await collectionExists(colName)).toBe(true);
+
+		// Drop it
+		const result = await collection({
+			subcommand: "drop",
+			dropOptions: { name: colName, help: false, force: true },
+		});
+		expect(result).toBe(0);
+
+		// Verify it no longer exists
+		expect(await collectionExists(colName)).toBe(false);
+	});
+
+	test("drop removes collection with -y flag", async () => {
+		// Create a collection first
+		const colName = `test-drop-y-${Date.now()}`;
+		await collection({
+			subcommand: "create",
+			createOptions: { name: colName, vectors: [], fields: [], help: false },
+		});
+
+		// Verify it exists
+		expect(await collectionExists(colName)).toBe(true);
+
+		// Drop it with -y (which sets force: true in the parsed options)
+		const result = await collection({
+			subcommand: "drop",
+			dropOptions: { name: colName, help: false, force: true },
+		});
+		expect(result).toBe(0);
+
+		// Verify it no longer exists
+		expect(await collectionExists(colName)).toBe(false);
 	});
 });

@@ -188,7 +188,7 @@ SUBCOMMANDS:
   create <NAME>     Create a new collection
   list              List all collections
   inspect <NAME>    View collection schema and stats
-  drop <NAME>       Delete a collection
+  drop <NAME>       Delete a collection (requires --force)
 
 OPTIONS:
   -h, --help        Show this help message
@@ -279,6 +279,29 @@ EXAMPLES:
   zvec collection create images --vector embedding:512
   zvec collection create articles --vector embedding:1536 --field title:string --field year:int32
   zvec collection create media --vector content:768 --vector thumbnail:128
+`);
+}
+
+/**
+ * Display help for drop subcommand
+ */
+export function showDropHelp(): void {
+	console.log(`zvec collection drop - Delete a collection
+
+USAGE:
+  zvec collection drop <NAME> [OPTIONS]
+
+OPTIONS:
+  -f, --force, -y   Skip confirmation (required)
+  -h, --help        Show this help message
+
+DESCRIPTION:
+  Permanently deletes a collection and all its data.
+  The --force or -y flag is required to confirm deletion.
+
+EXAMPLES:
+  zvec collection drop mycol --force
+  zvec collection drop mycol -y
 `);
 }
 
@@ -664,6 +687,56 @@ async function inspect(options: {
 }
 
 /**
+ * Drop (delete) a collection
+ */
+async function drop(options: {
+	name?: string;
+	help?: boolean;
+	force?: boolean;
+}): Promise<number> {
+	if (options.help) {
+		showDropHelp();
+		return 0;
+	}
+
+	if (!options.name) {
+		console.error("Error: Missing collection name");
+		console.error("Usage: zvec collection drop <NAME> [OPTIONS]");
+		return 1;
+	}
+
+	// Require --force or -y flag
+	if (!options.force) {
+		console.error(
+			"Error: Deletion requires confirmation. Use --force or -y flag.",
+		);
+		console.error(`Example: zvec collection drop ${options.name} --force`);
+		return 1;
+	}
+
+	// Check if collection exists
+	const collectionPath = await getCollectionPath(options.name);
+	const file = Bun.file(collectionPath);
+
+	if (!(await file.exists())) {
+		console.error(`Error: Collection '${options.name}' not found`);
+		return 1;
+	}
+
+	// Delete the collection file
+	try {
+		await Bun.write(collectionPath, ""); // Clear the file first
+		Bun.spawnSync(["rm", collectionPath]); // Then remove it
+		console.log(`✓ Dropped collection '${options.name}'`);
+		return 0;
+	} catch (error) {
+		console.error(`Error: Failed to drop collection '${options.name}'`);
+		console.error(error);
+		return 1;
+	}
+}
+
+/**
  * Execute collection command
  */
 export async function collection(options: CollectionOptions): Promise<number> {
@@ -693,8 +766,10 @@ export async function collection(options: CollectionOptions): Promise<number> {
 			return inspect(options.inspectOptions);
 
 		case "drop":
-			console.error("Error: 'drop' subcommand not yet implemented");
-			return 1;
+			if (!options.dropOptions) {
+				return drop({ help: false });
+			}
+			return drop(options.dropOptions);
 
 		default:
 			showCollectionHelp();
