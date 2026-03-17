@@ -3,6 +3,7 @@
  * Manage collections (create, list, inspect, drop)
  */
 
+import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
 import { readConfig } from "../config";
@@ -199,6 +200,31 @@ EXAMPLES:
   zvec collection drop mycol --force
 
 Run 'zvec collection <SUBCOMMAND> --help' for subcommand-specific help.
+`);
+}
+
+/**
+ * Display help for list subcommand
+ */
+export function showListHelp(): void {
+	console.log(`zvec collection list - List all collections
+
+USAGE:
+  zvec collection list [OPTIONS]
+  zvec ls [OPTIONS]
+
+OPTIONS:
+  --json      Output as JSON
+  -h, --help  Show this help message
+
+OUTPUT:
+  Default: Table with columns (name, documents, vectors, created)
+  JSON: Array of collection objects
+
+EXAMPLES:
+  zvec collection list
+  zvec ls
+  zvec collection list --json
 `);
 }
 
@@ -419,6 +445,109 @@ async function create(options: CollectionCreateOptions): Promise<number> {
 }
 
 /**
+ * Get collections directory path
+ */
+async function getCollectionsDir(): Promise<string> {
+	const config = await readConfig();
+	return path.join(config.storage.path, "collections");
+}
+
+/**
+ * List all collections
+ */
+interface CollectionInfo {
+	name: string;
+	documents: number;
+	vectors: number;
+	created: string;
+}
+
+async function list(options: {
+	help?: boolean;
+	json?: boolean;
+}): Promise<number> {
+	if (options.help) {
+		showListHelp();
+		return 0;
+	}
+
+	const collectionsDir = await getCollectionsDir();
+
+	// Check if collections directory exists
+	if (!existsSync(collectionsDir)) {
+		if (options.json) {
+			console.log("[]");
+		} else {
+			console.log("No collections found. Run 'zvec init' first.");
+		}
+		return 0;
+	}
+
+	// Read all JSON files in the collections directory
+	const globber = new Bun.Glob("*.json");
+	const collectionFiles: CollectionInfo[] = [];
+
+	for await (const file of globber.scan({ cwd: collectionsDir })) {
+		const filePath = path.join(collectionsDir, file);
+		const content = Bun.file(filePath);
+
+		if (await content.exists()) {
+			try {
+				const schema = (await content.json()) as CollectionSchema;
+				collectionFiles.push({
+					name: schema.name,
+					documents: 0, // Document counting not implemented yet
+					vectors: schema.vectors.length,
+					created: schema.created,
+				});
+			} catch {
+				// Skip files that can't be parsed
+				console.error(`Warning: Could not parse ${file}`);
+			}
+		}
+	}
+
+	// Sort by name
+	collectionFiles.sort((a, b) => a.name.localeCompare(b.name));
+
+	if (options.json) {
+		console.log(JSON.stringify(collectionFiles, null, 2));
+	} else {
+		if (collectionFiles.length === 0) {
+			console.log("No collections found.");
+			return 0;
+		}
+
+		// Calculate column widths
+		const nameWidth = Math.max(4, ...collectionFiles.map((c) => c.name.length));
+		const docsWidth = Math.max(
+			9,
+			...collectionFiles.map((c) => c.documents.toString().length),
+		);
+		const vecsWidth = Math.max(
+			7,
+			...collectionFiles.map((c) => c.vectors.toString().length),
+		);
+
+		// Print header
+		console.log(
+			`${"NAME".padEnd(nameWidth)}  ${"DOCUMENTS".padStart(docsWidth)}  ${"VECTORS".padStart(vecsWidth)}  CREATED`,
+		);
+		console.log("-".repeat(nameWidth + docsWidth + vecsWidth + 30));
+
+		// Print rows
+		for (const col of collectionFiles) {
+			const createdDate = new Date(col.created).toLocaleDateString();
+			console.log(
+				`${col.name.padEnd(nameWidth)}  ${col.documents.toString().padStart(docsWidth)}  ${col.vectors.toString().padStart(vecsWidth)}  ${createdDate}`,
+			);
+		}
+	}
+
+	return 0;
+}
+
+/**
  * Execute collection command
  */
 export async function collection(options: CollectionOptions): Promise<number> {
@@ -436,8 +565,10 @@ export async function collection(options: CollectionOptions): Promise<number> {
 			return create(options.createOptions);
 
 		case "list":
-			console.error("Error: 'list' subcommand not yet implemented");
-			return 1;
+			if (!options.listOptions) {
+				return list({ help: false });
+			}
+			return list(options.listOptions);
 
 		case "inspect":
 			console.error("Error: 'inspect' subcommand not yet implemented");

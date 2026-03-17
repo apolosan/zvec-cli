@@ -104,6 +104,7 @@ COMMANDS:
   init              Initialize zvec storage location
   collection        Manage collections (create, list, inspect, drop)
   config            Manage configuration
+  ls                List all collections (shortcut for 'collection list')
   insert            Insert documents into a collection
   fetch             Fetch a document by ID
   delete            Delete documents from a collection
@@ -119,6 +120,8 @@ EXAMPLES:
   zvec init --path ./my-data      Initialize with custom storage path
   zvec --version                  Show version number
   zvec init --help                Show detailed help for init command
+  zvec ls                         List all collections
+  zvec collection list --json     List collections as JSON
 
 Run 'zvec <COMMAND> --help' for command-specific help.
 `);
@@ -173,8 +176,11 @@ export async function main(args: string[]): Promise<number> {
 		}
 
 		case "collection":
-		case "col": {
-			const collectionOptions = parseCollectionArgs(commandArgs);
+		case "col":
+		case "ls": {
+			const collectionOptions = parseCollectionArgs(
+				command === "ls" ? ["list", ...commandArgs] : commandArgs,
+			);
 			return collection(collectionOptions);
 		}
 

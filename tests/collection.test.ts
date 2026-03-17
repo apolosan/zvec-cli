@@ -305,12 +305,61 @@ describe("collection command - create", () => {
 });
 
 describe("collection command - other subcommands", () => {
-	test("list returns not implemented", async () => {
+	test("list shows help with --help flag", async () => {
+		const result = await collection({
+			subcommand: "list",
+			listOptions: { help: true },
+		});
+		expect(result).toBe(0);
+	});
+
+	test("list returns 0 with empty collections", async () => {
+		// Save original ZVEC_HOME
+		const originalHome = process.env.ZVEC_HOME;
+
+		// Use a fresh temp directory
+		const emptyHome = path.join(os.tmpdir(), `zvec-empty-${Date.now()}`);
+		process.env.ZVEC_HOME = emptyHome;
+
 		const result = await collection({
 			subcommand: "list",
 			listOptions: { help: false },
 		});
-		expect(result).toBe(1);
+		expect(result).toBe(0);
+
+		// Cleanup and restore
+		Bun.spawnSync(["rm", "-rf", emptyHome]);
+		process.env.ZVEC_HOME = originalHome;
+	});
+
+	test("list outputs JSON with --json flag", async () => {
+		// Create a collection first
+		const colName = `test-list-json-${Date.now()}`;
+		await collection({
+			subcommand: "create",
+			createOptions: { name: colName, vectors: [], fields: [], help: false },
+		});
+
+		const result = await collection({
+			subcommand: "list",
+			listOptions: { help: false, json: true },
+		});
+		expect(result).toBe(0);
+	});
+
+	test("list shows created collections", async () => {
+		// Create a collection
+		const colName = `test-list-table-${Date.now()}`;
+		await collection({
+			subcommand: "create",
+			createOptions: { name: colName, vectors: [], fields: [], help: false },
+		});
+
+		const result = await collection({
+			subcommand: "list",
+			listOptions: { help: false },
+		});
+		expect(result).toBe(0);
 	});
 
 	test("inspect returns not implemented", async () => {
