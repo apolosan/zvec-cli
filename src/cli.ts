@@ -9,6 +9,8 @@ import { deleteDocuments, parseDeleteArgs } from "./commands/delete";
 import { fetch, parseFetchArgs } from "./commands/fetch";
 import { init, parseInitArgs } from "./commands/init";
 import { insert, parseInsertArgs } from "./commands/insert";
+import { optimize, parseOptimizeArgs } from "./commands/optimize";
+import { parseSearchArgs, search } from "./commands/search";
 
 const VERSION = "0.1.0";
 
@@ -209,6 +211,16 @@ export async function main(args: string[]): Promise<number> {
 		case "delete": {
 			const deleteOptions = parseDeleteArgs(commandArgs);
 			return deleteDocuments(deleteOptions);
+		}
+
+		case "search": {
+			const searchOptions = parseSearchArgs(commandArgs);
+			return search(searchOptions);
+		}
+
+		case "optimize": {
+			const optimizeOptions = parseOptimizeArgs(commandArgs);
+			return optimize(optimizeOptions);
 		}
 
 		default:

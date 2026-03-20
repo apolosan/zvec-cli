@@ -18,5 +18,11 @@
 	},
 	"peerDependencies": {
 		"typescript": "^5"
-	}
+	},
+	"dependencies": {
+		"@zvec/zvec": "^0.2.3"
+	},
+	"trustedDependencies": [
+		"@zvec/zvec"
+	]
 }
